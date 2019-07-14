@@ -45,8 +45,9 @@ class GPU:
         # Source https://cgit.freedesktop.org/~agd5f/linux/tree/drivers/gpu/drm/amd/amdgpu/amdgpu_pm.c?h=amd-staging-drm-next
         filepath = self.cardpath + "/pp_od_clk_voltage"
         label_pattern = r"^([a-zA-Z_]{1,}):$"
-        clock_limit_pattern = r"^(\d|\S{1,}):\s{1,}(\d{1,})(MHz|Mhz|mV)\s{1,}(\d{1,})(MHz|Mhz|mV)$"
-        print("Reading clock states and limits.")
+        clock_limit_pattern = r"^(\d|\S{1,}):\s{1,}(\d{1,})(MHz|Mhz)$"
+        label_value_value_pattern = r"^([^\s]+):\s{1,}(\d{1,})(MHz|Mhz|mV)\s{1,}(\d{1,})(MHz|Mhz|mV)$"
+        print("Reading clock states and limits from {}.".format(filepath))
         try:
             with open(filepath) as pp_od_clk_voltage:
                 # File not that large, can put all in memory
@@ -68,7 +69,7 @@ class GPU:
                         readingSCLK = False
                     match = re.match(clock_limit_pattern, line)
                     self.pstate_clock.append(int(match.group(2)))
-                    self.pstate_voltage.append(int(match.group(4)))
+                    self.pstate_voltage.append(0)
                 elif "OD_MCLK" in line or readingMCLK:
                     # Read Memory clocks
                     if not readingMCLK:
@@ -78,7 +79,7 @@ class GPU:
                         readingMCLK = False
                     match = re.match(clock_limit_pattern, line)
                     self.pmem_clock.append(int(match.group(2)))
-                    self.pmem_voltage.append(int(match.group(4)))
+                    self.pmem_voltage.append(0)
                 elif "OD_VDDC_CURVE" in line or readingVDDC:
                     print("Full VEGA20 support not implemented yet")
                     if not readingVDDC:
@@ -90,7 +91,7 @@ class GPU:
                     if not readingRANGE:
                         readingRANGE = True
                         continue
-                    match = re.match(clock_limit_pattern,line)
+                    match = re.match(label_value_value_pattern,line)
                     if match is None or labelmatch:
                         readingRANGE = False
                     if "SCLK" in match.group(1):
